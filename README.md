@@ -43,17 +43,17 @@ cat schema.sql
 
 ## Tech Choices
 
-**Django** — built-in ORM with `select_for_update()` for row-level locking and `transaction.atomic()` for atomicity. Migrations handle schema and seed data in one place.
+**Django** - built-in ORM with `select_for_update()` for row-level locking and `transaction.atomic()` for atomicity. Migrations handle schema and seed data in one place.
 
-**PostgreSQL** — chosen for `SELECT ... FOR UPDATE` row-level locking, `CHECK` constraints, and full ACID compliance.
+**PostgreSQL** - chosen for `SELECT ... FOR UPDATE` row-level locking, `CHECK` constraints, and full ACID compliance.
 
-**Django REST Framework** — JSON parsing and response formatting. Transaction endpoints use custom `APIView` logic.
+**Django REST Framework** - JSON parsing and response formatting. Transaction endpoints use custom `APIView` logic.
 
-**django-ratelimit** — per-IP rate limiting on all endpoints to prevent abuse and audit log flooding. Uses Django's cache backend so it adds no DB overhead.
+**django-ratelimit** - per-IP rate limiting on all endpoints to prevent abuse and audit log flooding. Uses Django's cache backend so it adds no DB overhead.
 
 ## Concurrency Strategy
 
-When a spend or top-up request comes in, the service locks the relevant wallet rows using `select_for_update()` before reading any balances. This translates to `SELECT ... FOR UPDATE` in PostgreSQL — any other request trying to modify the same wallets has to wait. Two simultaneous spends on the same wallet run one after the other, never in parallel.
+When a spend or top-up request comes in, the service locks the relevant wallet rows using `select_for_update()` before reading any balances. This translates to `SELECT ... FOR UPDATE` in PostgreSQL - any other request trying to modify the same wallets has to wait. Two simultaneous spends on the same wallet run one after the other, never in parallel.
 
 **Deadlock prevention:** always lock wallet rows in ascending UUID order. Since every transaction acquires locks in the same order, no circular wait can form.
 
@@ -70,11 +70,11 @@ All endpoints are rate limited per IP address:
 
 Exceeding the limit returns HTTP 429. Every rate-limited request is recorded in the audit log.
 
-This protects against audit log flooding — an attacker hammering the API is capped at 60 write attempts per minute per IP, keeping log growth bounded.
+This protects against audit log flooding - an attacker hammering the API is capped at 60 write attempts per minute per IP, keeping log growth bounded.
 
 ## Audit Logging
 
-Every API request — successful or not, including rate-limited hits — is recorded in `wallets_auditlog`. Each entry captures: action, wallet ID, status, request payload, HTTP response code, client IP, and error message if applicable.
+Every API request - successful or not, including rate-limited hits - is recorded in `wallets_auditlog`. Each entry captures: action, wallet ID, status, request payload, HTTP response code, client IP, and error message if applicable.
 
 Audit log writes happen outside the main database transaction so that rolled-back transactions (e.g. failed spends) still produce a log entry. A failed audit log write never affects the client response.
 
@@ -129,26 +129,26 @@ pytest
 
 ## Deployment (Render)
 
-### Step 1 — Push to GitHub
+### Step 1 - Push to GitHub
 ```bash
 git remote add origin https://github.com/<your-username>/wallet-service.git
 git push -u origin main
 ```
 
-### Step 2 — Create PostgreSQL on Render
-1. Render dashboard → **New** → **PostgreSQL**
-2. Name it `wallet-db`, free tier → **Create Database**
+### Step 2 - Create PostgreSQL on Render
+1. Render dashboard -> **New** -> **PostgreSQL**
+2. Name it `wallet-db`, free tier -> **Create Database**
 3. Copy the **Internal Database URL**
 
-### Step 3 — Create Web Service
-1. Render dashboard → **New** → **Web Service**
+### Step 3 - Create Web Service
+1. Render dashboard -> **New** -> **Web Service**
 2. Connect your GitHub repo, then set:
    - **Runtime:** Docker
    - **Branch:** `main`
    - **Region:** same as your DB
    - **Instance Type:** Free
 
-### Step 4 — Set Environment Variables
+### Step 4 - Set Environment Variables
 
 | Key | Value |
 |-----|-------|
@@ -156,7 +156,7 @@ git push -u origin main
 | `DEBUG` | `False` |
 | `DATABASE_URL` | paste Internal Database URL from Step 2 |
 
-### Step 5 — Deploy
+### Step 5 - Deploy
 Click **Create Web Service**. Render builds the image and runs:
 ```
 python manage.py migrate && gunicorn wallet_service.wsgi:application --bind 0.0.0.0:8080 --workers 4
@@ -166,4 +166,4 @@ python manage.py migrate && gunicorn wallet_service.wsgi:application --bind 0.0.
 
 https://<your-service-name>.onrender.com
 
-> Note: Render's free tier spins down after 15 minutes of inactivity. The first request after a sleep takes ~30 seconds to respond — this is expected.
+> Note: Render's free tier spins down after 15 minutes of inactivity. The first request after a sleep takes ~30 seconds to respond - this is expected.
