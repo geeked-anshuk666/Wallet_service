@@ -550,6 +550,60 @@ class TransactionHistoryView(APIView):
         }, status=200)
 
 
+# ── Discovery Views ───────────────────────────────────────────
+# Lets visitors discover available wallet IDs without needing external docs.
+
+class ListWalletsView(APIView):
+    """List all user wallets — helpful for Swagger UI visitors who need a wallet ID."""
+
+    @extend_schema(
+        tags=['Discovery'],
+        summary='List all wallets',
+        description=(
+            'Returns all non-system wallets with their IDs, owner, asset type, and balance. '
+            'Use the returned `wallet_id` values in other endpoints.'
+        ),
+        responses={
+            200: inline_serializer(
+                name='ListWalletsResponse',
+                fields={
+                    'wallets': serializers.ListField(child=serializers.DictField()),
+                    'count': serializers.IntegerField(),
+                },
+            ),
+            429: ErrorResponse,
+        },
+    )
+    def get(self, request):
+        # ── Rate limit guard (200/min for reads) ──────────────
+        limited = is_ratelimited(request, group='list_wallets', key='ip', rate='200/m', increment=True)
+        if limited:
+            return Response(
+                {'error': 'RATE_LIMIT_EXCEEDED', 'message': 'too many requests, slow down'},
+                status=429,
+            )
+
+        # ── Fetch all non-system wallets with related data ────
+        # Exclude system wallets (treasury, bonus pool, revenue) since
+        # those are internal. Only show user-facing wallets.
+        wallets = Wallet.objects.filter(
+            is_system=False,
+        ).select_related('user', 'asset_type').order_by('user__username')
+
+        results = [
+            {
+                'wallet_id': str(w.id),
+                'user': w.user.username,
+                'asset_type': w.asset_type.name,
+                'symbol': w.asset_type.symbol,
+                'balance': w.balance,
+            }
+            for w in wallets
+        ]
+
+        return Response({'wallets': results, 'count': len(results)}, status=200)
+
+
 # ── System Views ──────────────────────────────────────────────
 
 class HealthView(APIView):

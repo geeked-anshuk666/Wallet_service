@@ -189,6 +189,7 @@ All endpoints return JSON. Mutation endpoints require an `Idempotency-Key` heade
 
 | Method | Endpoint | Description | Rate Limit |
 |--------|----------|-------------|-----------|
+| `GET` | `/api/v1/wallets` | **List all wallets** (start here!) | 200/min |
 | `POST` | `/api/v1/wallets/{wallet_id}/topup` | Credit wallet from treasury | 60/min |
 | `POST` | `/api/v1/wallets/{wallet_id}/bonus` | Credit wallet from bonus pool | 60/min |
 | `POST` | `/api/v1/wallets/{wallet_id}/spend` | Debit wallet, credit revenue | 60/min |

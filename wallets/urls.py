@@ -5,6 +5,7 @@ Maps API endpoints to their view classes. All routes are prefixed with
 /api/v1/ by the root URL config (wallet_service/urls.py).
 
 Endpoints:
+  GET  /api/v1/wallets                      → ListWalletsView
   POST /api/v1/wallets/<uuid>/topup         → TopupView
   POST /api/v1/wallets/<uuid>/bonus         → BonusView
   POST /api/v1/wallets/<uuid>/spend         → SpendView
@@ -17,12 +18,16 @@ from django.urls import path
 from .views import (
     BalanceView,
     BonusView,
+    ListWalletsView,
     SpendView,
     TopupView,
     TransactionHistoryView,
 )
 
 urlpatterns = [
+    # ── Discovery endpoint (find wallet IDs to use) ───────────
+    path('wallets', ListWalletsView.as_view()),
+
     # ── Mutation endpoints (require Idempotency-Key header) ───
     path('wallets/<uuid:wallet_id>/topup', TopupView.as_view()),
     path('wallets/<uuid:wallet_id>/bonus', BonusView.as_view()),

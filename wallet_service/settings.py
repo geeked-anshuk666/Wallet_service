@@ -148,7 +148,17 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Wallet Service API',
-    'DESCRIPTION': 'Closed-loop virtual currency wallet with double-entry ledger, idempotency, and rate limiting.',
+    'DESCRIPTION': (
+        'Closed-loop virtual currency wallet with double-entry ledger, idempotency, and rate limiting.\n\n'
+        '## Quick Start — Try It Now\n\n'
+        'Use these pre-seeded wallet IDs to test the endpoints below:\n\n'
+        '| User | Wallet ID | Starting Balance |\n'
+        '|------|-----------|------------------|\n'
+        '| Alice | `44444444-4444-4444-4444-444444444444` | 500 GLD |\n'
+        '| Bob | `55555555-5555-5555-5555-555555555555` | 200 GLD |\n\n'
+        '**Asset Type ID** (required for mutations): `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` (Gold Coins)\n\n'
+        'Or call **GET /api/v1/wallets** to discover all available wallets dynamically.'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,  # Don't embed the raw schema in Swagger UI
     'SECURITY': [],                 # No auth schemes advertised
