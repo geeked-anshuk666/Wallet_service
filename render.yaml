@@ -1,0 +1,56 @@
+# render.yaml - Render Blueprint for Wallet Service
+# Docs: https://docs.render.com/blueprint-spec
+#
+# Usage:
+#   1. Push this file to your repo
+#   2. Go to https://dashboard.render.com/blueprints
+#   3. Click "New Blueprint Instance" and connect your repo
+#   4. Render creates the database + web service automatically
+#
+# The only manual step: set SECRET_KEY in the Render dashboard
+# after the blueprint deploys (or generate one below).
+
+databases:
+  # ── PostgreSQL Database ─────────────────────────────────────
+  # Free-tier Postgres instance. Render manages backups and connectivity.
+  - name: wallet-db
+    plan: free
+    databaseName: wallet_db
+    user: wallet_user
+    region: oregon
+
+services:
+  # ── Web Service (Docker) ────────────────────────────────────
+  # Builds from the Dockerfile in the repo root.
+  # Runs: migrate -> collectstatic -> gunicorn (4 workers)
+  - type: web
+    name: wallet-service
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+
+    # Health check endpoint - Render pings this to verify the service is alive
+    healthCheckPath: /health
+
+    envVars:
+      # Django secret key - generate a strong one for production
+      # You can generate one with: python -c "import secrets; print(secrets.token_urlsafe(50))"
+      - key: SECRET_KEY
+        generateValue: true
+
+      # Production mode - disables debug toolbar, verbose errors, etc.
+      - key: DEBUG
+        value: "False"
+
+      # Connects to the Render-managed PostgreSQL instance above
+      # fromDatabase.name must match the database name defined above
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wallet-db
+          property: connectionString
+
+      # Tells Django which hostnames to accept
+      # Render sets RENDER_EXTERNAL_HOSTNAME automatically
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
