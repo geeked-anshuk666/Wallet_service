@@ -2,7 +2,7 @@
 
 A production-ready, closed-loop virtual currency wallet built with **Django**, **PostgreSQL**, and **Django REST Framework**. It supports real-time top-ups, bonuses, and spending - all backed by a **double-entry ledger**, **idempotent mutations**, and **row-level concurrency control**.
 
-> **Live URL:** `https://<YOUR_RENDER_DOMAIN>.onrender.com`
+> **Live URL:** [`https://wallet-service-0tjx.onrender.com/docs`](https://wallet-service-0tjx.onrender.com/docs)
 
 ---
 
@@ -328,7 +328,7 @@ A standalone test suite lives in the `Test Suite/` directory. These are separate
 python "Test Suite/run_all.py"
 
 # Run against a deployed instance
-set WALLET_SERVICE_URL=https://<YOUR_RENDER_DOMAIN>.onrender.com
+set WALLET_SERVICE_URL=https://wallet-service-0tjx.onrender.com
 python "Test Suite/run_all.py"
 
 # Run a single test
@@ -496,9 +496,9 @@ https://<YOUR_RENDER_DOMAIN>.onrender.com
 
 | URL | Purpose |
 |-----|---------|
-| `https://<YOUR_RENDER_DOMAIN>.onrender.com/health` | Verify the service is running |
-| `https://<YOUR_RENDER_DOMAIN>.onrender.com/docs` | Swagger UI |
-| `https://<YOUR_RENDER_DOMAIN>.onrender.com/redoc` | ReDoc |
+| [`/health`](https://wallet-service-0tjx.onrender.com/health) | Verify the service is running |
+| [`/docs`](https://wallet-service-0tjx.onrender.com/docs) | Swagger UI |
+| [`/redoc`](https://wallet-service-0tjx.onrender.com/redoc) | ReDoc |
 
 > 💡 **Note:** Render's free tier spins down after 15 minutes of inactivity. The first request after a cold start takes ~30–50 seconds - this is expected and normal for the free plan.
 
