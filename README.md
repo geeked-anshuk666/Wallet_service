@@ -1,6 +1,6 @@
-# 💰 Wallet Service
+# Wallet Service
 
-A production-ready, closed-loop virtual currency wallet built with **Django**, **PostgreSQL**, and **Django REST Framework**. It supports real-time top-ups, bonuses, and spending — all backed by a **double-entry ledger**, **idempotent mutations**, and **row-level concurrency control**.
+A production-ready, closed-loop virtual currency wallet built with **Django**, **PostgreSQL**, and **Django REST Framework**. It supports real-time top-ups, bonuses, and spending - all backed by a **double-entry ledger**, **idempotent mutations**, and **row-level concurrency control**.
 
 > **Live URL:** `https://<YOUR_RENDER_DOMAIN>.onrender.com`
 
@@ -41,14 +41,14 @@ A production-ready, closed-loop virtual currency wallet built with **Django**, *
 
 | Feature | Description |
 |---------|-------------|
-| 🏦 **Multi-wallet support** | Each user can hold wallets for different asset types |
-| 🔁 **Idempotent mutations** | Every top-up, bonus, and spend requires an `Idempotency-Key` header — replay the same request safely |
-| 📒 **Double-entry ledger** | Every transaction produces balanced debit + credit entries. Your books always add up to zero |
-| 🔒 **Row-level locking** | `SELECT ... FOR UPDATE` with ascending UUID ordering prevents race conditions *and* deadlocks |
-| ⏱️ **Per-IP rate limiting** | 60 req/min for mutations, 200 req/min for reads — abuse is capped, audit log growth is bounded |
-| 📝 **Full audit trail** | Every request (success, failure, rate-limited) is recorded with IP, payload, and response code |
-| 📖 **Swagger UI** | Interactive API docs available at `/docs` out of the box |
-| 🐳 **One-command Docker setup** | `docker compose up` — that's it. Migrations, seed data, and the server all start automatically |
+| **Multi-wallet support** | Each user can hold wallets for different asset types |
+| **Idempotent mutations** | Every top-up, bonus, and spend requires an `Idempotency-Key` header - replay the same request safely |
+| **Double-entry ledger** | Every transaction produces balanced debit + credit entries. Your books always add up to zero |
+| **Row-level locking** | `SELECT ... FOR UPDATE` with ascending UUID ordering prevents race conditions *and* deadlocks |
+| **Per-IP rate limiting** | 60 req/min for mutations, 200 req/min for reads - abuse is capped, audit log growth is bounded |
+| **Full audit trail** | Every request (success, failure, rate-limited) is recorded with IP, payload, and response code |
+| **Swagger UI** | Interactive API docs available at `/docs` out of the box |
+| **One-command Docker setup** | `docker compose up` - that's it. Migrations, seed data, and the server all start automatically |
 
 ---
 
@@ -59,9 +59,9 @@ A production-ready, closed-loop virtual currency wallet built with **Django**, *
 | **Framework** | Django 5.0 | Battle-tested ORM, `select_for_update()`, `transaction.atomic()`, and built-in migration system |
 | **API** | Django REST Framework 3.15 | Clean `APIView` pattern, content negotiation, and a mature ecosystem |
 | **Database** | PostgreSQL 16 | Full ACID, `SELECT ... FOR UPDATE` row locking, `CHECK` constraints |
-| **Rate Limiting** | django-ratelimit 4.1 | Per-IP limiting using Django's in-memory cache — zero DB overhead |
+| **Rate Limiting** | django-ratelimit 4.1 | Per-IP limiting using Django's in-memory cache - zero DB overhead |
 | **API Docs** | drf-spectacular 0.29 | Auto-generated OpenAPI 3.0 schema with Swagger UI and ReDoc |
-| **Static Files** | whitenoise 6.7 | Serves static assets directly from the app process — no nginx required on Render |
+| **Static Files** | whitenoise 6.7 | Serves static assets directly from the app process - no nginx required on Render |
 | **Server** | Gunicorn 22 | Pre-fork worker model, 4 workers by default |
 | **Containerization** | Docker + Docker Compose | Reproducible builds, single-command local dev |
 
@@ -124,7 +124,7 @@ Client Request
 git clone https://github.com/geeked-anshuk666/Dummy_wallet_service_test.git
 cd Dummy_wallet_service_test
 
-# Start everything — DB, migrations, seed data, server
+# Start everything - DB, migrations, seed data, server
 docker compose up --build
 ```
 
@@ -179,8 +179,8 @@ Once the service is running, open your browser:
 
 | URL | What it is |
 |-----|-----------|
-| [`/docs`](http://localhost:8080/docs) | **Swagger UI** — interactive playground where you can try every endpoint |
-| [`/redoc`](http://localhost:8080/redoc) | **ReDoc** — clean, read-only reference documentation |
+| [`/docs`](http://localhost:8080/docs) | **Swagger UI** - interactive playground where you can try every endpoint |
+| [`/redoc`](http://localhost:8080/redoc) | **ReDoc** - clean, read-only reference documentation |
 | [`/schema`](http://localhost:8080/schema) | Raw **OpenAPI 3.0** JSON schema (useful for code generation) |
 
 ### Endpoints
@@ -194,9 +194,9 @@ All endpoints return JSON. Mutation endpoints require an `Idempotency-Key` heade
 | `POST` | `/api/v1/wallets/{wallet_id}/spend` | Debit wallet, credit revenue | 60/min |
 | `GET` | `/api/v1/wallets/{wallet_id}/balance` | Current balance | 200/min |
 | `GET` | `/api/v1/wallets/{wallet_id}/transactions` | Paginated transaction history | 200/min |
-| `GET` | `/health` | Health check | — |
+| `GET` | `/health` | Health check | - |
 
-#### Example — Top up Alice's wallet with 100 Gold Coins
+#### Example - Top up Alice's wallet with 100 Gold Coins
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444444444/topup \
@@ -219,7 +219,7 @@ curl -X POST http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444
 }
 ```
 
-#### Example — Check balance
+#### Example - Check balance
 
 ```bash
 curl http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444444444/balance
@@ -237,7 +237,7 @@ curl http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444444444/b
 }
 ```
 
-#### Example — Spend (insufficient balance)
+#### Example - Spend (insufficient balance)
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444444444/spend \
@@ -255,7 +255,7 @@ curl -X POST http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444
 }
 ```
 
-#### Example — Transaction History (paginated)
+#### Example - Transaction History (paginated)
 
 ```bash
 curl "http://localhost:8080/api/v1/wallets/44444444-4444-4444-4444-444444444444/transactions?page=1&per_page=5"
@@ -288,7 +288,7 @@ This means you can safely retry failed network requests without worrying about d
 
 | HTTP Code | Error Key | When |
 |-----------|----------|------|
-| `400` | — | Missing `Idempotency-Key`, missing `amount`/`asset_type_id`, or non-positive amount |
+| `400` | - | Missing `Idempotency-Key`, missing `amount`/`asset_type_id`, or non-positive amount |
 | `404` | `wallet not found` | Wallet UUID doesn't exist (read endpoints) |
 | `422` | `INSUFFICIENT_BALANCE` | Spend amount exceeds current balance |
 | `422` | `WALLET_NOT_FOUND` | Wallet UUID doesn't exist (mutation endpoints) |
@@ -321,7 +321,7 @@ docker compose exec app pytest -v
 
 ### Integration Test Suite
 
-A standalone test suite lives in the `Test Suite/` directory. These are separate Python scripts that hit the live API using the `requests` library — no Django test client involved.
+A standalone test suite lives in the `Test Suite/` directory. These are separate Python scripts that hit the live API using the `requests` library - no Django test client involved.
 
 ```bash
 # Run the full suite against localhost
@@ -354,7 +354,7 @@ python "Test Suite/04_topup.py"
 | 13 | Missing Idempotency-Key | 400 rejection |
 | 14 | Negative amount | 400 validation |
 
-> ⚠️ **Note:** Tests 02–12 are sequential and depend on the DB state from earlier tests. Reset the database before re-running: `docker compose down -v && docker compose up -d`
+> **Note:** Tests 02–12 are sequential and depend on the DB state from earlier tests. Reset the database before re-running: `docker compose down -v && docker compose up -d`
 
 ---
 
@@ -403,7 +403,7 @@ wallet_ids = sorted([source_id, dest_id])
 wallets = Wallet.objects.select_for_update().filter(id__in=wallet_ids).order_by('id')
 ```
 
-**Why sort by UUID?** If two transactions try to lock Wallet A then Wallet B, while another tries B then A — you get a **deadlock**. By always locking in ascending UUID order, every transaction acquires locks in the same sequence, making circular waits impossible.
+**Why sort by UUID?** If two transactions try to lock Wallet A then Wallet B, while another tries B then A - you get a **deadlock**. By always locking in ascending UUID order, every transaction acquires locks in the same sequence, making circular waits impossible.
 
 The entire mutation runs inside `transaction.atomic()`. If anything fails, the database rolls back to a consistent state. No partial updates - ever.
 
@@ -414,7 +414,7 @@ Every transaction creates **exactly two** `LedgerEntry` records:
 - A `DEBIT` on the source wallet (e.g., treasury)
 - A `CREDIT` on the destination wallet (e.g., Alice)
 
-The sum of all ledger entries across all wallets is always **zero**. This isn't just a nice property — it's an invariant that makes it trivial to detect bugs. If debits ≠ credits, something went wrong, and you can pinpoint exactly where.
+The sum of all ledger entries across all wallets is always **zero**. This isn't just a nice property - it's an invariant that makes it trivial to detect bugs. If debits ≠ credits, something went wrong, and you can pinpoint exactly where.
 
 ### Rate Limiting
 
@@ -423,7 +423,7 @@ The sum of all ledger entries across all wallets is always **zero**. This isn't 
 | Mutations (topup, bonus, spend) | 60 requests/min per IP | Separate groups per endpoint |
 | Reads (balance, transactions) | 200 requests/min per IP | Separate groups per endpoint |
 
-Rate limiting uses Django's in-memory cache (`LocMemCache`), so it adds **zero database queries**. If you're running multiple Gunicorn workers, each worker has its own counter — this is an acceptable trade-off for local development. For production with stricter requirements, swap to Redis.
+Rate limiting uses Django's in-memory cache (`LocMemCache`), so it adds **zero database queries**. If you're running multiple Gunicorn workers, each worker has its own counter - this is an acceptable trade-off for local development. For production with stricter requirements, swap to Redis.
 
 Rate-limited requests return HTTP `429` and are still **recorded in the audit log** so you can track abuse attempts.
 
@@ -437,27 +437,27 @@ The `AuditLog` table is **append-only** and captures:
 - The HTTP status code returned
 
 Key design choices:
-1. **Audit writes happen OUTSIDE the main transaction** — if a spend fails and rolls back, the audit log entry **still persists**. You want to know about failed attempts.
-2. **Audit failures are silently swallowed** — if the audit log write itself fails (disk full, etc.), the client's actual request is never affected. The service logs the error to stderr and moves on.
+1. **Audit writes happen OUTSIDE the main transaction** - if a spend fails and rolls back, the audit log entry **still persists**. You want to know about failed attempts.
+2. **Audit failures are silently swallowed** - if the audit log write itself fails (disk full, etc.), the client's actual request is never affected. The service logs the error to stderr and moves on.
 
 ---
 
 ## Deployment (Render)
 
-### Step 1 — Push to GitHub
+### Step 1 - Push to GitHub
 
 ```bash
 git remote add origin https://github.com/<your-username>/wallet-service.git
 git push -u origin main
 ```
 
-### Step 2 — Create a PostgreSQL Database
+### Step 2 - Create a PostgreSQL Database
 
 1. Go to the [Render Dashboard](https://dashboard.render.com) → **New** → **PostgreSQL**
 2. Name: `wallet-db`, plan: **Free** → **Create Database**
 3. Copy the **Internal Database URL** (starts with `postgresql://...`)
 
-### Step 3 — Create a Web Service
+### Step 3 - Create a Web Service
 
 1. Render Dashboard → **New** → **Web Service**
 2. Connect your GitHub repository
@@ -467,7 +467,7 @@ git push -u origin main
    - **Region:** Same as your database
    - **Instance Type:** Free
 
-### Step 4 — Set Environment Variables
+### Step 4 - Set Environment Variables
 
 In the Render web service settings, add:
 
@@ -478,7 +478,7 @@ In the Render web service settings, add:
 | `DATABASE_URL` | Paste the Internal Database URL from Step 2 |
 | `ALLOWED_HOSTS` | `<YOUR_RENDER_DOMAIN>.onrender.com` |
 
-### Step 5 — Deploy
+### Step 5 - Deploy
 
 Click **Create Web Service**. Render will:
 1. Build the Docker image
@@ -500,7 +500,7 @@ https://<YOUR_RENDER_DOMAIN>.onrender.com
 | `https://<YOUR_RENDER_DOMAIN>.onrender.com/docs` | Swagger UI |
 | `https://<YOUR_RENDER_DOMAIN>.onrender.com/redoc` | ReDoc |
 
-> 💡 **Note:** Render's free tier spins down after 15 minutes of inactivity. The first request after a cold start takes ~30–50 seconds — this is expected and normal for the free plan.
+> 💡 **Note:** Render's free tier spins down after 15 minutes of inactivity. The first request after a cold start takes ~30–50 seconds - this is expected and normal for the free plan.
 
 ---
 
