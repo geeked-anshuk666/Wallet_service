@@ -3,6 +3,8 @@ import logging
 
 from django.core.paginator import Paginator
 from django_ratelimit.core import is_ratelimited
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,7 +16,72 @@ from .services import bonus, spend, topup
 logger = logging.getLogger(__name__)
 
 
+# ── Shared schema components ──────────────────────────────────
+
+MutationRequestBody = inline_serializer(
+    name='MutationRequest',
+    fields={
+        'amount': serializers.IntegerField(help_text='Positive integer amount in minor units'),
+        'asset_type_id': serializers.UUIDField(help_text='UUID of the asset type'),
+    },
+)
+
+MutationResponse = inline_serializer(
+    name='MutationResponse',
+    fields={
+        'transaction_id': serializers.UUIDField(),
+        'wallet_id': serializers.UUIDField(),
+        'asset_type': serializers.CharField(),
+        'amount': serializers.IntegerField(),
+        'direction': serializers.ChoiceField(choices=['CREDIT', 'DEBIT']),
+        'new_balance': serializers.IntegerField(),
+        'created_at': serializers.DateTimeField(),
+        'replayed': serializers.BooleanField(required=False, help_text='True if idempotency replay'),
+    },
+)
+
+ErrorResponse = inline_serializer(
+    name='ErrorResponse',
+    fields={
+        'error': serializers.CharField(),
+        'message': serializers.CharField(required=False),
+    },
+)
+
+IDEMPOTENCY_HEADER = OpenApiParameter(
+    name='Idempotency-Key',
+    type=str,
+    location=OpenApiParameter.HEADER,
+    required=True,
+    description='Unique key for idempotent request. Replaying the same key returns the original result.',
+)
+
+WALLET_ID_PARAM = OpenApiParameter(
+    name='wallet_id',
+    type={'type': 'string', 'format': 'uuid'},
+    location=OpenApiParameter.PATH,
+    description='UUID of the target wallet',
+)
+
+
+# ── Views ─────────────────────────────────────────────────────
+
 class TopupView(APIView):
+    @extend_schema(
+        tags=['Mutations'],
+        summary='Top up a wallet',
+        description='Credits the specified wallet from the treasury. Requires Idempotency-Key header.',
+        parameters=[WALLET_ID_PARAM, IDEMPOTENCY_HEADER],
+        request=MutationRequestBody,
+        responses={
+            201: MutationResponse,
+            200: MutationResponse,
+            400: ErrorResponse,
+            422: ErrorResponse,
+            429: ErrorResponse,
+            500: ErrorResponse,
+        },
+    )
     def post(self, request, wallet_id):
         limited = is_ratelimited(request, group='topup', key='ip', rate='60/m', increment=True)
         if limited:
@@ -88,6 +155,21 @@ class TopupView(APIView):
 
 
 class BonusView(APIView):
+    @extend_schema(
+        tags=['Mutations'],
+        summary='Award a bonus',
+        description='Credits the specified wallet from the bonus pool. Requires Idempotency-Key header.',
+        parameters=[WALLET_ID_PARAM, IDEMPOTENCY_HEADER],
+        request=MutationRequestBody,
+        responses={
+            201: MutationResponse,
+            200: MutationResponse,
+            400: ErrorResponse,
+            422: ErrorResponse,
+            429: ErrorResponse,
+            500: ErrorResponse,
+        },
+    )
     def post(self, request, wallet_id):
         limited = is_ratelimited(request, group='bonus', key='ip', rate='60/m', increment=True)
         if limited:
@@ -161,6 +243,21 @@ class BonusView(APIView):
 
 
 class SpendView(APIView):
+    @extend_schema(
+        tags=['Mutations'],
+        summary='Spend from a wallet',
+        description='Debits the specified wallet and credits the revenue wallet. Rejects if insufficient balance. Requires Idempotency-Key header.',
+        parameters=[WALLET_ID_PARAM, IDEMPOTENCY_HEADER],
+        request=MutationRequestBody,
+        responses={
+            201: MutationResponse,
+            200: MutationResponse,
+            400: ErrorResponse,
+            422: ErrorResponse,
+            429: ErrorResponse,
+            500: ErrorResponse,
+        },
+    )
     def post(self, request, wallet_id):
         limited = is_ratelimited(request, group='spend', key='ip', rate='60/m', increment=True)
         if limited:
@@ -242,6 +339,26 @@ class SpendView(APIView):
 
 
 class BalanceView(APIView):
+    @extend_schema(
+        tags=['Reads'],
+        summary='Get wallet balance',
+        description='Returns the current balance, asset type, and owner for the specified wallet.',
+        parameters=[WALLET_ID_PARAM],
+        responses={
+            200: inline_serializer(
+                name='BalanceResponse',
+                fields={
+                    'wallet_id': serializers.UUIDField(),
+                    'user': serializers.CharField(),
+                    'asset_type': serializers.CharField(),
+                    'symbol': serializers.CharField(),
+                    'balance': serializers.IntegerField(),
+                },
+            ),
+            404: ErrorResponse,
+            429: ErrorResponse,
+        },
+    )
     def get(self, request, wallet_id):
         limited = is_ratelimited(request, group='balance', key='ip', rate='200/m', increment=True)
         if limited:
@@ -283,6 +400,30 @@ class BalanceView(APIView):
 
 
 class TransactionHistoryView(APIView):
+    @extend_schema(
+        tags=['Reads'],
+        summary='Get transaction history',
+        description='Returns paginated ledger entries for the specified wallet.',
+        parameters=[
+            WALLET_ID_PARAM,
+            OpenApiParameter(name='page', type=int, location=OpenApiParameter.QUERY, default=1),
+            OpenApiParameter(name='per_page', type=int, location=OpenApiParameter.QUERY, default=20, description='Max 100'),
+        ],
+        responses={
+            200: inline_serializer(
+                name='TransactionHistoryResponse',
+                fields={
+                    'wallet_id': serializers.UUIDField(),
+                    'transactions': serializers.ListField(child=serializers.DictField()),
+                    'page': serializers.IntegerField(),
+                    'total_pages': serializers.IntegerField(),
+                    'total_count': serializers.IntegerField(),
+                },
+            ),
+            404: ErrorResponse,
+            429: ErrorResponse,
+        },
+    )
     def get(self, request, wallet_id):
         limited = is_ratelimited(request, group='transactions', key='ip', rate='200/m', increment=True)
         if limited:
@@ -350,6 +491,12 @@ class TransactionHistoryView(APIView):
 
 
 class HealthView(APIView):
+    @extend_schema(
+        tags=['System'],
+        summary='Health check',
+        description='Returns {"status": "healthy"} if the service is running.',
+        responses={200: inline_serializer(name='HealthResponse', fields={'status': serializers.CharField()})},
+    )
     def get(self, request):
         write_audit_log(
             action=AuditLog.HEALTH_CHECK, status=AuditLog.SUCCESS,

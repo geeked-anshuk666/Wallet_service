@@ -9,3 +9,4 @@ pytest-django==4.8.0
 dj-database-url==2.2.0
 whitenoise==6.7.0
 requests==2.32.3
+drf-spectacular==0.29.0
