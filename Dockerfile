@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 8080
-CMD ["sh", "-c", "python manage.py migrate && gunicorn wallet_service.wsgi:application --bind 0.0.0.0:8080 --workers 4"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn wallet_service.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 4"]
