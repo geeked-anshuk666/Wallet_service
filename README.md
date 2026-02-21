@@ -278,9 +278,9 @@ System wallets (treasury, bonus pool, revenue) are also seeded and managed inter
 
 Every mutation endpoint (`topup`, `bonus`, `spend`) requires an `Idempotency-Key` header.
 
-- **First request** → processes normally, returns `201 Created`
-- **Replay with the same key** → returns the original result with `200 OK` and `"replayed": true`
-- **No header** → rejected with `400 Bad Request`
+- **First request** -> processes normally, returns `201 Created`
+- **Replay with the same key** -> returns the original result with `200 OK` and `"replayed": true`
+- **No header** -> rejected with `400 Bad Request`
 
 This means you can safely retry failed network requests without worrying about duplicate charges or double-credits.
 
@@ -347,9 +347,9 @@ python "Test Suite/04_topup.py"
 | 06 | Spend -30 | DEBIT mutation works |
 | 07 | Overspend 999999 | Rejected with 422 |
 | 08 | Balance after overspend | Unchanged after rejection |
-| 09 | Idempotency replay | Same key → `replayed: true` |
+| 09 | Idempotency replay | Same key -> `replayed: true` |
 | 10 | Balance after replay | No double-credit |
-| 11 | Bonus +50 | Bonus pool → user wallet |
+| 11 | Bonus +50 | Bonus pool -> user wallet |
 | 12 | Transaction history | Paginated ledger entries |
 | 13 | Missing Idempotency-Key | 400 rejection |
 | 14 | Negative amount | 400 validation |
@@ -453,13 +453,13 @@ git push -u origin main
 
 ### Step 2 - Create a PostgreSQL Database
 
-1. Go to the [Render Dashboard](https://dashboard.render.com) → **New** → **PostgreSQL**
-2. Name: `wallet-db`, plan: **Free** → **Create Database**
+1. Go to the [Render Dashboard](https://dashboard.render.com) -> **New** -> **PostgreSQL**
+2. Name: `wallet-db`, plan: **Free** -> **Create Database**
 3. Copy the **Internal Database URL** (starts with `postgresql://...`)
 
 ### Step 3 - Create a Web Service
 
-1. Render Dashboard → **New** → **Web Service**
+1. Render Dashboard -> **New** -> **Web Service**
 2. Connect your GitHub repository
 3. Configure:
    - **Runtime:** Docker
@@ -524,7 +524,7 @@ wallet_service/
 ├── docker-compose.yml         # PostgreSQL 16 + app service with healthcheck
 ├── requirements.txt           # Pinned dependencies
 ├── manage.py                  # Django management script
-├── pytest.ini                 # pytest → Django settings binding
+├── pytest.ini                 # pytest -> Django settings binding
 ├── schema.sql                 # Human-readable SQL schema reference
 ├── seed.sql                   # Standalone SQL seed data
 │
