@@ -1,3 +1,19 @@
+"""
+views.py — API Views for the Wallet Service
+
+Each view follows the same pattern:
+  1. Rate limit check  →  reject with 429 if over limit
+  2. Input validation   →  reject with 400 if missing/invalid
+  3. Call service layer  →  handle domain exceptions (422) and unexpected errors (500)
+  4. Write audit log     →  log the outcome regardless of success/failure
+  5. Return response     →  JSON with appropriate status code
+
+Mutation views (topup, bonus, spend) require an Idempotency-Key header.
+Read views (balance, transactions) have a higher rate limit.
+
+OpenAPI annotations via @extend_schema power the Swagger UI at /docs.
+"""
+
 import json
 import logging
 
@@ -16,7 +32,9 @@ from .services import bonus, spend, topup
 logger = logging.getLogger(__name__)
 
 
-# ── Shared schema components ──────────────────────────────────
+# ── Shared OpenAPI Schema Components ──────────────────────────
+# Reusable serializer definitions and parameter specs that are shared
+# across all mutation endpoints. Keeps the @extend_schema decorators DRY.
 
 MutationRequestBody = inline_serializer(
     name='MutationRequest',
@@ -48,6 +66,7 @@ ErrorResponse = inline_serializer(
     },
 )
 
+# Header param documented in Swagger for every mutation endpoint
 IDEMPOTENCY_HEADER = OpenApiParameter(
     name='Idempotency-Key',
     type=str,
@@ -56,6 +75,7 @@ IDEMPOTENCY_HEADER = OpenApiParameter(
     description='Unique key for idempotent request. Replaying the same key returns the original result.',
 )
 
+# Path param documented in Swagger for every endpoint that targets a wallet
 WALLET_ID_PARAM = OpenApiParameter(
     name='wallet_id',
     type={'type': 'string', 'format': 'uuid'},
@@ -64,9 +84,15 @@ WALLET_ID_PARAM = OpenApiParameter(
 )
 
 
-# ── Views ─────────────────────────────────────────────────────
+# ── Mutation Views ────────────────────────────────────────────
+# All three mutation views (topup, bonus, spend) follow the same structure:
+# rate limit → validate input → call service → audit → respond.
+# The only differences are the service function called and the
+# error types handled (spend also catches InsufficientBalanceError).
 
 class TopupView(APIView):
+    """Credit a user's wallet with funds from the treasury (real-money purchase)."""
+
     @extend_schema(
         tags=['Mutations'],
         summary='Top up a wallet',
@@ -83,6 +109,8 @@ class TopupView(APIView):
         },
     )
     def post(self, request, wallet_id):
+        # ── Rate limit guard ──────────────────────────────────
+        # 60 mutations per minute per IP. Exceeding returns 429.
         limited = is_ratelimited(request, group='topup', key='ip', rate='60/m', increment=True)
         if limited:
             write_audit_log(
@@ -95,6 +123,8 @@ class TopupView(APIView):
                 status=429,
             )
 
+        # ── Input validation ──────────────────────────────────
+        # Require Idempotency-Key header, amount, and asset_type_id
         idempotency_key = request.headers.get('Idempotency-Key')
         if not idempotency_key:
             write_audit_log(
@@ -125,6 +155,7 @@ class TopupView(APIView):
             )
             return Response({'error': 'amount must be a positive integer'}, status=400)
 
+        # ── Execute the topup via the service layer ───────────
         try:
             result = topup(str(wallet_id), amount, asset_type_id, idempotency_key)
             response_status = 200 if result.get('replayed') else 201
@@ -146,6 +177,7 @@ class TopupView(APIView):
             )
             return Response({'error': 'INTERNAL_ERROR'}, status=500)
 
+        # ── Success: audit and respond ────────────────────────
         write_audit_log(
             action=AuditLog.TOPUP, status=AuditLog.SUCCESS,
             response_status=response_status, request=request,
@@ -155,6 +187,8 @@ class TopupView(APIView):
 
 
 class BonusView(APIView):
+    """Credit a user's wallet with funds from the bonus pool (promotional reward)."""
+
     @extend_schema(
         tags=['Mutations'],
         summary='Award a bonus',
@@ -171,6 +205,7 @@ class BonusView(APIView):
         },
     )
     def post(self, request, wallet_id):
+        # ── Rate limit guard ──────────────────────────────────
         limited = is_ratelimited(request, group='bonus', key='ip', rate='60/m', increment=True)
         if limited:
             write_audit_log(
@@ -183,6 +218,7 @@ class BonusView(APIView):
                 status=429,
             )
 
+        # ── Input validation ──────────────────────────────────
         idempotency_key = request.headers.get('Idempotency-Key')
         if not idempotency_key:
             write_audit_log(
@@ -213,6 +249,7 @@ class BonusView(APIView):
             )
             return Response({'error': 'amount must be a positive integer'}, status=400)
 
+        # ── Execute the bonus via the service layer ───────────
         try:
             result = bonus(str(wallet_id), amount, asset_type_id, idempotency_key)
             response_status = 200 if result.get('replayed') else 201
@@ -234,6 +271,7 @@ class BonusView(APIView):
             )
             return Response({'error': 'INTERNAL_ERROR'}, status=500)
 
+        # ── Success: audit and respond ────────────────────────
         write_audit_log(
             action=AuditLog.BONUS, status=AuditLog.SUCCESS,
             response_status=response_status, request=request,
@@ -243,6 +281,8 @@ class BonusView(APIView):
 
 
 class SpendView(APIView):
+    """Debit a user's wallet and credit revenue. Rejects if insufficient balance."""
+
     @extend_schema(
         tags=['Mutations'],
         summary='Spend from a wallet',
@@ -259,6 +299,7 @@ class SpendView(APIView):
         },
     )
     def post(self, request, wallet_id):
+        # ── Rate limit guard ──────────────────────────────────
         limited = is_ratelimited(request, group='spend', key='ip', rate='60/m', increment=True)
         if limited:
             write_audit_log(
@@ -271,6 +312,7 @@ class SpendView(APIView):
                 status=429,
             )
 
+        # ── Input validation ──────────────────────────────────
         idempotency_key = request.headers.get('Idempotency-Key')
         if not idempotency_key:
             write_audit_log(
@@ -301,6 +343,8 @@ class SpendView(APIView):
             )
             return Response({'error': 'amount must be a positive integer'}, status=400)
 
+        # ── Execute the spend via the service layer ───────────
+        # Spend can also raise InsufficientBalanceError (unlike topup/bonus)
         try:
             result = spend(str(wallet_id), amount, asset_type_id, idempotency_key)
             response_status = 200 if result.get('replayed') else 201
@@ -330,6 +374,7 @@ class SpendView(APIView):
             )
             return Response({'error': 'INTERNAL_ERROR'}, status=500)
 
+        # ── Success: audit and respond ────────────────────────
         write_audit_log(
             action=AuditLog.SPEND, status=AuditLog.SUCCESS,
             response_status=response_status, request=request,
@@ -338,7 +383,13 @@ class SpendView(APIView):
         return Response(result, status=response_status)
 
 
+# ── Read Views ────────────────────────────────────────────────
+# Read-only endpoints with a higher rate limit (200/min vs 60/min).
+# No Idempotency-Key required since these don't modify state.
+
 class BalanceView(APIView):
+    """Return the current balance, asset type, and owner of a wallet."""
+
     @extend_schema(
         tags=['Reads'],
         summary='Get wallet balance',
@@ -360,6 +411,7 @@ class BalanceView(APIView):
         },
     )
     def get(self, request, wallet_id):
+        # ── Rate limit guard (200/min for reads) ──────────────
         limited = is_ratelimited(request, group='balance', key='ip', rate='200/m', increment=True)
         if limited:
             write_audit_log(
@@ -372,6 +424,7 @@ class BalanceView(APIView):
                 status=429,
             )
 
+        # ── Fetch the wallet with related data in one query ───
         try:
             wallet = Wallet.objects.select_related('asset_type', 'user').get(id=wallet_id)
         except Wallet.DoesNotExist:
@@ -400,6 +453,8 @@ class BalanceView(APIView):
 
 
 class TransactionHistoryView(APIView):
+    """Return paginated ledger entries for a wallet, newest first."""
+
     @extend_schema(
         tags=['Reads'],
         summary='Get transaction history',
@@ -425,6 +480,7 @@ class TransactionHistoryView(APIView):
         },
     )
     def get(self, request, wallet_id):
+        # ── Rate limit guard (200/min for reads) ──────────────
         limited = is_ratelimited(request, group='transactions', key='ip', rate='200/m', increment=True)
         if limited:
             write_audit_log(
@@ -437,6 +493,7 @@ class TransactionHistoryView(APIView):
                 status=429,
             )
 
+        # ── Verify the wallet exists before querying entries ──
         try:
             wallet = Wallet.objects.get(id=wallet_id)
         except Wallet.DoesNotExist:
@@ -448,10 +505,12 @@ class TransactionHistoryView(APIView):
             )
             return Response({'error': 'wallet not found'}, status=404)
 
+        # ── Fetch ledger entries with related data, newest first ──
         entries = LedgerEntry.objects.filter(
             wallet=wallet,
         ).select_related('transaction', 'asset_type').order_by('-created_at')
 
+        # ── Pagination: default 20 per page, max 100 ─────────
         page = request.query_params.get('page', 1)
         per_page = request.query_params.get('per_page', 20)
         try:
@@ -464,6 +523,7 @@ class TransactionHistoryView(APIView):
         paginator = Paginator(entries, per_page)
         page_obj = paginator.get_page(page)
 
+        # ── Serialize each ledger entry ───────────────────────
         results = [
             {
                 'transaction_id': str(entry.transaction.id),
@@ -490,7 +550,11 @@ class TransactionHistoryView(APIView):
         }, status=200)
 
 
+# ── System Views ──────────────────────────────────────────────
+
 class HealthView(APIView):
+    """Simple liveness probe — returns 200 if the service is running."""
+
     @extend_schema(
         tags=['System'],
         summary='Health check',
